@@ -6,7 +6,7 @@ Esta é uma entidade PURA - não depende de nada externo!
 """
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Optional
 
@@ -19,21 +19,23 @@ class Medicamento:
     Atributos:
         id: Identificador único (opcional, gerado pelo banco)
         nome: Nome do medicamento
-        descricao: Descrição detalhada
+        principio_ativo: Princípio ativo (substância que age no organismo)
         preco: Preço unitário
-        estoque_atual: Quantidade em estoque
         estoque_minimo: Quantidade mínima antes de alertar
-        requer_receita: Se precisa de receita médica
-        data_validade: Data de validade do lote atual
+        descricao: Descrição detalhada (opcional)
+        estoque_atual: Quantidade em estoque (opcional, padrão 0)
+        requer_receita: Se precisa de receita médica (opcional, padrão False)
+        data_validade: Data de validade do lote atual (opcional)
     """
     
     nome: str
+    principio_ativo: str
     preco: Decimal
-    estoque_atual: int
     estoque_minimo: int
-    requer_receita: bool
-    data_validade: date
     descricao: Optional[str] = None
+    estoque_atual: int = 0
+    requer_receita: bool = False
+    data_validade: Optional[date] = None
     id: Optional[int] = None
     
     def __post_init__(self):
@@ -42,9 +44,11 @@ class Medicamento:
         Aqui ficam as REGRAS DE NEGÓCIO!
         """
         self._validar_nome()
+        self._validar_principio_ativo()
         self._validar_preco()
         self._validar_estoque()
-        self._validar_validade()
+        if self.data_validade:
+            self._validar_validade()
     
     def _validar_nome(self):
         """Regra: Nome é obrigatório e não pode ser vazio"""
@@ -53,6 +57,14 @@ class Medicamento:
         
         if len(self.nome) < 3:
             raise ValueError("Nome deve ter pelo menos 3 caracteres!")
+    
+    def _validar_principio_ativo(self):
+        """Regra: Princípio ativo é obrigatório"""
+        if not self.principio_ativo or self.principio_ativo.strip() == "":
+            raise ValueError("Princípio ativo é obrigatório!")
+        
+        if len(self.principio_ativo) < 3:
+            raise ValueError("Princípio ativo deve ter pelo menos 3 caracteres!")
     
     def _validar_preco(self):
         """Regra: Preço deve ser positivo"""
@@ -76,6 +88,8 @@ class Medicamento:
     
     def esta_vencido(self) -> bool:
         """Verifica se o medicamento está vencido"""
+        if not self.data_validade:
+            return False
         return date.today() > self.data_validade
     
     def estoque_baixo(self) -> bool:
@@ -122,4 +136,4 @@ class Medicamento:
     
     def __str__(self):
         """Representação amigável do medicamento"""
-        return f"{self.nome} - R$ {self.preco:.2f} (Estoque: {self.estoque_atual})"
+        return f"{self.nome} ({self.principio_ativo}) - R$ {self.preco:.2f} (Estoque: {self.estoque_atual})"
