@@ -19,6 +19,10 @@ from .estoque_schema import (
     EstoqueResponse,
     EstoqueBaixoItem
 )
+from .receita_schema import (
+    ReceitaValidarRequest,
+    ReceitaValidarResponse
+)
 
 __all__ = [
     "MedicamentoCreate",
@@ -31,4 +35,6 @@ __all__ = [
     "RemoverEstoqueRequest",
     "EstoqueResponse",
     "EstoqueBaixoItem",
+    "ReceitaValidarRequest",
+    "ReceitaValidarResponse",
 ]

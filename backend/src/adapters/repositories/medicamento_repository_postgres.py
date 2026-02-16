@@ -31,16 +31,16 @@ class MedicamentoRepositoryPostgres(MedicamentoRepositoryPort):
             session: Sessão do SQLAlchemy para acessar o banco
         """
         self.session = session
-    
+
     def _entidade_para_modelo(self, medicamento: Medicamento) -> MedicamentoModel:
         """
         Converte Entidade → Modelo
-        
+    
         Traduz objeto de domínio (Medicamento) para objeto do banco (MedicamentoModel)
-        
+    
         Args:
             medicamento: Entidade de domínio
-            
+        
         Returns:
             Modelo do SQLAlchemy pronto pra salvar no banco
         """
@@ -49,28 +49,34 @@ class MedicamentoRepositoryPostgres(MedicamentoRepositoryPort):
             nome=medicamento.nome,
             principio_ativo=medicamento.principio_ativo,
             preco=str(medicamento.preco),
-            estoque_minimo=medicamento.estoque_minimo
+            estoque_minimo=medicamento.estoque_minimo,
+            requer_receita=1 if medicamento.requer_receita else 0  # ← NOVO! (Aula 10) - Converte   bool → int
         )
     
     def _modelo_para_entidade(self, modelo: MedicamentoModel) -> Medicamento:
         """
         Converte Modelo → Entidade
-        
+    
         Traduz objeto do banco (MedicamentoModel) para objeto de domínio (Medicamento)
-        
+    
         Args:
             modelo: Modelo do SQLAlchemy
-            
+        
         Returns:
             Entidade de domínio limpa (sem dependências do banco)
         """
+        from decimal import Decimal
+    
         return Medicamento(
             id=modelo.id,
             nome=modelo.nome,
             principio_ativo=modelo.principio_ativo,
-            preco=Decimal(modelo.preco),
-            estoque_minimo=modelo.estoque_minimo
+            preco=Decimal(modelo.preco) if isinstance(modelo.preco, str) else modelo.preco,
+            estoque_minimo=modelo.estoque_minimo,
+            requer_receita=bool(modelo.requer_receita)  #  - Converte int → bool
         )
+    
+
     
     def salvar(self, medicamento: Medicamento) -> Medicamento:
         """

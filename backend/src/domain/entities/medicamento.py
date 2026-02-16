@@ -134,6 +134,55 @@ class Medicamento:
         
         self.estoque_atual += quantidade
     
+    # ============ VALIDAÇÕES DE MEDICAMENTO CONTROLADO (AULA 10) ============
+    
+    def requer_receita_medica(self) -> bool:
+        """
+        Verifica se este medicamento requer receita médica
+        
+        Returns:
+            True se é controlado, False se é venda livre
+        """
+        return self.requer_receita
+    
+    def validar_venda_controlada(self, receita=None):
+        """
+        Valida se pode vender medicamento controlado
+        
+        Args:
+            receita: Receita médica (obrigatória se controlado)
+            
+        Raises:
+            ValueError: Se controlado sem receita ou receita inválida
+        """
+        if not self.requer_receita:
+            # Medicamento comum, pode vender sem receita
+            return True
+        
+        # Medicamento controlado!
+        if receita is None:
+            raise ValueError(
+                f"Medicamento controlado '{self.nome}' requer receita médica! "
+                "Não é possível vender sem apresentar receita válida."
+            )
+        
+        # Verifica se receita está válida
+        if not receita.esta_valida():
+            dias = receita.dias_restantes()
+            raise ValueError(
+                f"Receita vencida há {abs(dias)} dias! "
+                f"Data de vencimento: {receita.data_vencimento()}"
+            )
+        
+        # Verifica se o medicamento na receita bate
+        if receita.medicamento_nome.lower() not in self.nome.lower():
+            raise ValueError(
+                f"Receita é para '{receita.medicamento_nome}', "
+                f"mas está tentando comprar '{self.nome}'"
+            )
+        
+        return True
+    
     def __str__(self):
         """Representação amigável do medicamento"""
         return f"{self.nome} ({self.principio_ativo}) - R$ {self.preco:.2f} (Estoque: {self.estoque_atual})"

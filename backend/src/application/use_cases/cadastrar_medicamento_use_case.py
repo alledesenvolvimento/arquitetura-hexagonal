@@ -36,8 +36,9 @@ class CadastrarMedicamentoUseCase:
             dados: Dicionário com os dados do medicamento
                 - nome (str): Nome do medicamento
                 - principio_ativo (str): Princípio ativo
-                - preco (str/float): Preço
+                - preco (str/float/Decimal): Preço
                 - estoque_minimo (int): Estoque mínimo
+                - requer_receita (bool, opcional): Se é controlado (Aula 10)
                 
         Returns:
             Medicamento cadastrado (com ID gerado)
@@ -47,11 +48,18 @@ class CadastrarMedicamentoUseCase:
         """
         # PASSO 1: Criar entidade do domínio
         # (Todas as validações acontecem automaticamente aqui!)
+        
+        # Converter preço para Decimal se necessário
+        preco = dados['preco']
+        if not isinstance(preco, Decimal):
+            preco = Decimal(str(preco))
+        
         medicamento = Medicamento(
             nome=dados['nome'],
             principio_ativo=dados['principio_ativo'],
-            preco=Decimal(str(dados['preco'])),
-            estoque_minimo=dados['estoque_minimo']
+            preco=preco,
+            estoque_minimo=dados['estoque_minimo'],
+            requer_receita=dados.get('requer_receita', False)  # ← NOVO! (Aula 10)
         )
         
         # PASSO 2: Salvar usando o port

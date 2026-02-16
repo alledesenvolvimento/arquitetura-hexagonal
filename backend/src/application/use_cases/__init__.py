@@ -8,6 +8,7 @@ from .listar_medicamentos_use_case import ListarMedicamentosUseCase
 from .adicionar_estoque_use_case import AdicionarEstoqueUseCase
 from .remover_estoque_use_case import RemoverEstoqueUseCase
 from .verificar_estoque_baixo_use_case import VerificarEstoqueBaixoUseCase
+from .validar_receita_use_case import ValidarReceitaUseCase
 
 __all__ = [
     "CadastrarMedicamentoUseCase",
@@ -15,4 +16,5 @@ __all__ = [
     "AdicionarEstoqueUseCase",
     "RemoverEstoqueUseCase",
     "VerificarEstoqueBaixoUseCase",
+    "ValidarReceitaUseCase",
 ]

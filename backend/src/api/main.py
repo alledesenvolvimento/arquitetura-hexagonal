@@ -6,7 +6,7 @@ FastAPI Application
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .controllers import medicamento_controller, lote_controller
+from .controllers import medicamento_controller, lote_controller, receita_controller
 
 
 # Criar aplicação FastAPI
@@ -32,6 +32,7 @@ app.add_middleware(
 # Registrar routers (controllers)
 app.include_router(medicamento_controller.router)
 app.include_router(lote_controller.router)
+app.include_router(receita_controller.router)
 
 
 @app.get("/", tags=["Root"])

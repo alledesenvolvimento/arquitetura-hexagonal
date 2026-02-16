@@ -37,6 +37,10 @@ class MedicamentoCreate(BaseModel):
         gt=0,  # Maior que zero
         description="Quantidade mínima em estoque"
     )
+    requer_receita: bool = Field(  # ← NOVO! (Aula 10)
+        False,  # Padrão: não controlado
+        description="Se o medicamento requer receita médica (controlado)"
+    )
     
     @field_validator('preco', mode='before')
     @classmethod
@@ -56,7 +60,8 @@ class MedicamentoCreate(BaseModel):
                 "nome": "Dipirona 500mg",
                 "principio_ativo": "Dipirona Sódica",
                 "preco": "8.50",
-                "estoque_minimo": 100
+                "estoque_minimo": 100,
+                "requer_receita": False  # ← NOVO! (Aula 10)
             }
         }
 
@@ -72,6 +77,7 @@ class MedicamentoResponse(BaseModel):
     principio_ativo: str
     preco: Decimal
     estoque_minimo: int
+    requer_receita: bool  # ← NOVO! (Aula 10)
     
     @field_validator('preco', mode='before')
     @classmethod
@@ -102,6 +108,7 @@ class MedicamentoUpdate(BaseModel):
     principio_ativo: Optional[str] = Field(None, min_length=3, max_length=200)
     preco: Optional[Decimal] = Field(None, gt=0)
     estoque_minimo: Optional[int] = Field(None, gt=0)
+    requer_receita: Optional[bool] = None  # ← NOVO! (Aula 10)
     
     @field_validator('preco', mode='before')
     @classmethod
