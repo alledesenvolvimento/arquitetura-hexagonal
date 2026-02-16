@@ -5,12 +5,14 @@ Conectam o domínio ao mundo externo
 
 from .repositories import (
     MedicamentoRepositoryMemory,
-    LoteRepositoryMemory
+    MedicamentoRepositoryPostgres,
+    LoteRepositoryMemory,
+    LoteRepositoryPostgres
 )
-from .services import EstoqueServiceMemory
 
 __all__ = [
-    'MedicamentoRepositoryMemory',
-    'LoteRepositoryMemory',
-    'EstoqueServiceMemory'
+    "MedicamentoRepositoryMemory",
+    "MedicamentoRepositoryPostgres",
+    "LoteRepositoryMemory",
+    "LoteRepositoryPostgres",
 ]

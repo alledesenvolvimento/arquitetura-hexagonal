@@ -1,64 +1,62 @@
 """
-AlleFarma - Sistema de Gestão Farmacêutica
-Aula 1: Primeira API simples
+API Principal do AlleFarma
+FastAPI Application
 """
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-# Criar instância do FastAPI
+from .controllers import medicamento_controller, lote_controller
+
+
+# Criar aplicação FastAPI
 app = FastAPI(
     title="AlleFarma API",
-    description="Sistema de Gestão Farmacêutica com Arquitetura Hexagonal",
-    version="0.1.0"
+    description="API REST para gestão farmacêutica usando Arquitetura Hexagonal",
+    version="1.0.0",
+    docs_url="/docs",  # Swagger UI
+    redoc_url="/redoc"  # ReDoc
 )
 
 
-# Rota raiz - apenas pra testar
-@app.get("/")
-def home():
+# Configurar CORS (permitir frontend acessar)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Em produção, especificar domínios
+    allow_credentials=True,
+    allow_methods=["*"],  # GET, POST, PUT, DELETE...
+    allow_headers=["*"],
+)
+
+
+# Registrar routers (controllers)
+app.include_router(medicamento_controller.router)
+app.include_router(lote_controller.router)
+
+
+@app.get("/", tags=["Root"])
+def root():
     """
-    Rota de boas-vindas
+    Endpoint raiz
+    
+    Retorna informações básicas da API
     """
     return {
-        "mensagem": "Bem-vindo ao AlleFarma! 💊",
-        "versao": "0.1.0",
-        "status": "online"
+        "message": "AlleFarma API - Arquitetura Hexagonal",
+        "version": "1.0.0",
+        "docs": "/docs",
+        "redoc": "/redoc"
     }
 
 
-# Rota de teste pra ver se tá funcionando
-@app.get("/health")
+@app.get("/health", tags=["Health"])
 def health_check():
     """
-    Verifica se a API tá rodando
+    Health check
+    
+    Verifica se a API está funcionando
     """
     return {
         "status": "healthy",
-        "servico": "AlleFarma API"
-    }
-
-
-# Rota de teste com medicamentos (dados fake, só pra ver funcionando)
-@app.get("/medicamentos")
-def listar_medicamentos():
-    """
-    Lista alguns medicamentos de exemplo
-    Nas próximas aulas vamos fazer isso de verdade!
-    """
-    return {
-        "medicamentos": [
-            {
-                "id": 1,
-                "nome": "Dipirona 500mg",
-                "preco": 8.50,
-                "estoque": 100
-            },
-            {
-                "id": 2,
-                "nome": "Paracetamol 750mg",
-                "preco": 12.00,
-                "estoque": 50
-            }
-        ],
-        "total": 2
+        "service": "AlleFarma API"
     }
