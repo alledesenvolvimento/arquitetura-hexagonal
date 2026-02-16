@@ -23,6 +23,12 @@ from .receita_schema import (
     ReceitaValidarRequest,
     ReceitaValidarResponse
 )
+from .relatorio_schema import (
+    RelatorioEstoqueResponse,
+    RelatorioMovimentacoesResponse,
+    MedicamentosVencendoResponse
+)
+
 
 __all__ = [
     "MedicamentoCreate",
@@ -37,4 +43,7 @@ __all__ = [
     "EstoqueBaixoItem",
     "ReceitaValidarRequest",
     "ReceitaValidarResponse",
+    "RelatorioEstoqueResponse",
+    "RelatorioMovimentacoesResponse",
+    "MedicamentosVencendoResponse",
 ]
