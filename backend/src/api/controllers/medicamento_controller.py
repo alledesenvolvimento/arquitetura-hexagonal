@@ -13,11 +13,23 @@ from ..schemas.medicamento_schema import (
     MedicamentoResponse,
     MedicamentoUpdate
 )
+from ..schemas.estoque_schema import (
+    AdicionarEstoqueRequest,
+    RemoverEstoqueRequest,
+    EstoqueResponse,
+    EstoqueBaixoItem
+)
 from ...application.use_cases import (
     CadastrarMedicamentoUseCase,
-    ListarMedicamentosUseCase
+    ListarMedicamentosUseCase,
+    AdicionarEstoqueUseCase,
+    RemoverEstoqueUseCase,
+    VerificarEstoqueBaixoUseCase
 )
-from ...adapters.repositories import MedicamentoRepositoryPostgres
+from ...adapters.repositories import (
+    MedicamentoRepositoryPostgres,
+    LoteRepositoryPostgres
+)
 from ...infrastructure.database import get_session
 
 
@@ -27,6 +39,10 @@ router = APIRouter(
     tags=["Medicamentos"]
 )
 
+
+# ==========================================
+# ENDPOINTS DE MEDICAMENTOS (CRUD)
+# ==========================================
 
 @router.post(
     "/",
@@ -192,4 +208,183 @@ def deletar_medicamento(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao deletar medicamento: {str(e)}"
+        )
+
+
+# ==========================================
+# ENDPOINTS DE GESTÃO DE ESTOQUE
+# ==========================================
+
+@router.post(
+    "/{medicamento_id}/estoque/adicionar",
+    response_model=EstoqueResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Adicionar estoque",
+    description="Adiciona produtos ao estoque (entrada de mercadorias)"
+)
+def adicionar_estoque(
+    medicamento_id: int,
+    dados: AdicionarEstoqueRequest,
+    session: Session = Depends(get_session)
+):
+    """
+    Adiciona quantidade ao estoque de um medicamento
+    
+    Use quando:
+    - Receber produtos do fornecedor
+    - Entrada de mercadorias
+    - Reposição de estoque
+    
+    Parâmetros:
+    - **medicamento_id**: ID do medicamento
+    - **quantidade**: Quantidade a adicionar (> 0)
+    - **numero_lote**: Número do lote recebido
+    - **data_fabricacao**: Data de fabricação (YYYY-MM-DD)
+    - **data_validade**: Data de validade (YYYY-MM-DD)
+    - **fornecedor**: Nome do fornecedor
+    """
+    try:
+        # 1. Criar repositórios
+        medicamento_repo = MedicamentoRepositoryPostgres(session)
+        lote_repo = LoteRepositoryPostgres(session)
+        
+        # 2. Criar use case
+        use_case = AdicionarEstoqueUseCase(medicamento_repo, lote_repo)
+        
+        # 3. Executar
+        resultado = use_case.execute(
+            medicamento_id=medicamento_id,
+            quantidade=dados.quantidade,
+            numero_lote=dados.numero_lote,
+            data_fabricacao=dados.data_fabricacao,
+            data_validade=dados.data_validade,
+            fornecedor=dados.fornecedor
+        )
+        
+        # 4. Retornar
+        return EstoqueResponse(
+            medicamento_id=resultado["medicamento_id"],
+            medicamento_nome=resultado["medicamento_nome"],
+            estoque_atual=resultado["estoque_atual"],
+            estoque_minimo=resultado["estoque_minimo"],
+            status=resultado["status"],
+            mensagem=resultado["mensagem"]
+        )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao adicionar estoque: {str(e)}"
+        )
+
+
+@router.post(
+    "/{medicamento_id}/estoque/remover",
+    response_model=EstoqueResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Remover estoque",
+    description="Remove produtos do estoque (saída/venda)"
+)
+def remover_estoque(
+    medicamento_id: int,
+    dados: RemoverEstoqueRequest,
+    session: Session = Depends(get_session)
+):
+    """
+    Remove quantidade do estoque de um medicamento
+    
+    Use quando:
+    - Vender produtos
+    - Dar baixa em produtos vencidos
+    - Registrar perda/devolução
+    
+    Parâmetros:
+    - **medicamento_id**: ID do medicamento
+    - **quantidade**: Quantidade a remover (> 0)
+    - **motivo**: Motivo da remoção (VENDA, VALIDADE, PERDA, etc)
+    - **observacao**: Observação adicional (opcional)
+    
+    Regra importante:
+    - Não pode remover mais do que tem em estoque!
+    """
+    try:
+        # 1. Criar repositórios
+        medicamento_repo = MedicamentoRepositoryPostgres(session)
+        lote_repo = LoteRepositoryPostgres(session)
+        
+        # 2. Criar use case
+        use_case = RemoverEstoqueUseCase(medicamento_repo, lote_repo)
+        
+        # 3. Executar
+        resultado = use_case.execute(
+            medicamento_id=medicamento_id,
+            quantidade=dados.quantidade,
+            motivo=dados.motivo,
+            observacao=dados.observacao
+        )
+        
+        # 4. Retornar
+        return EstoqueResponse(
+            medicamento_id=resultado["medicamento_id"],
+            medicamento_nome=resultado["medicamento_nome"],
+            estoque_atual=resultado["estoque_atual"],
+            estoque_minimo=resultado["estoque_minimo"],
+            status=resultado["status"],
+            mensagem=resultado["mensagem"]
+        )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao remover estoque: {str(e)}"
+        )
+
+
+@router.get(
+    "/estoque-baixo",
+    response_model=List[EstoqueBaixoItem],
+    summary="Listar estoque baixo",
+    description="Retorna medicamentos com estoque crítico ou abaixo do mínimo"
+)
+def listar_estoque_baixo(session: Session = Depends(get_session)):
+    """
+    Lista todos os medicamentos com estoque baixo
+    
+    Retorna:
+    - Medicamentos com estoque zerado (CRÍTICO)
+    - Medicamentos abaixo do estoque mínimo (ATENÇÃO)
+    
+    Ordenado por prioridade (críticos primeiro)
+    """
+    try:
+        # 1. Criar repositórios
+        medicamento_repo = MedicamentoRepositoryPostgres(session)
+        lote_repo = LoteRepositoryPostgres(session)
+        
+        # 2. Criar use case
+        use_case = VerificarEstoqueBaixoUseCase(medicamento_repo, lote_repo)
+        
+        # 3. Executar
+        alertas = use_case.execute()
+        
+        # 4. Converter para schema
+        return [
+            EstoqueBaixoItem(**alerta)
+            for alerta in alertas
+        ]
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao verificar estoque baixo: {str(e)}"
         )

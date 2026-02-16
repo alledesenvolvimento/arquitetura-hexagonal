@@ -1,6 +1,6 @@
 """
-Schemas Pydantic
-Validação de dados da API
+Schemas
+Definições de estrutura de dados da API
 """
 
 from .medicamento_schema import (
@@ -13,6 +13,12 @@ from .lote_schema import (
     LoteResponse,
     LoteUpdate
 )
+from .estoque_schema import (
+    AdicionarEstoqueRequest,
+    RemoverEstoqueRequest,
+    EstoqueResponse,
+    EstoqueBaixoItem
+)
 
 __all__ = [
     "MedicamentoCreate",
@@ -21,4 +27,8 @@ __all__ = [
     "LoteCreate",
     "LoteResponse",
     "LoteUpdate",
+    "AdicionarEstoqueRequest",
+    "RemoverEstoqueRequest",
+    "EstoqueResponse",
+    "EstoqueBaixoItem",
 ]
