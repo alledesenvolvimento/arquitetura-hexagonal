@@ -12,6 +12,7 @@ from .validar_receita_use_case import ValidarReceitaUseCase
 from .relatorio_estoque_use_case import RelatorioEstoqueUseCase
 from .relatorio_movimentacoes_use_case import RelatorioMovimentacoesUseCase
 from .medicamentos_vencendo_use_case import MedicamentosVencendoUseCase
+from .monitorar_produtos_vencendo_use_case import MonitorarProdutosVencendoUseCase  # NOVO - Aula 12!
 
 __all__ = [
     'CadastrarMedicamentoUseCase',
@@ -22,5 +23,6 @@ __all__ = [
     'ValidarReceitaUseCase',
     'RelatorioEstoqueUseCase',
     'RelatorioMovimentacoesUseCase',
-    'MedicamentosVencendoUseCase'
+    'MedicamentosVencendoUseCase',
+    'MonitorarProdutosVencendoUseCase',  # NOVO - Aula 12!
 ]

@@ -1,6 +1,7 @@
 """
 Use Case: Verificar Estoque Baixo
-Responsável por identificar medicamentos com estoque crítico
+Verifica estoque baixo E dispara eventos! 📢
+Agora com Observer Pattern (Aula 12)
 """
 
 from datetime import datetime
@@ -10,17 +11,23 @@ from src.domain.ports import (
     MedicamentoRepositoryPort,
     LoteRepositoryPort
 )
+from src.domain.events import EstoqueBaixoEvent  # NOVO - Aula 12!
+from src.domain.events.event_dispatcher import event_dispatcher  # NOVO - Aula 12!
 
 
 class VerificarEstoqueBaixoUseCase:
     """
     Use Case para verificar estoque baixo
     
+    Agora com Observer Pattern! 📢
+    Dispara eventos quando encontra estoque crítico!
+    
     Fluxo:
     1. Lista todos os medicamentos
     2. Para cada medicamento, calcula estoque disponível
     3. Compara com estoque mínimo
-    4. Retorna lista de medicamentos em alerta
+    4. 🔥 DISPARA EVENTO se estoque baixo (NOVO - Aula 12!)
+    5. Retorna lista de medicamentos em alerta
     
     Regras de Negócio:
     - Considera apenas lotes não vencidos
@@ -71,6 +78,16 @@ class VerificarEstoqueBaixoUseCase:
             # Verificar se está abaixo do mínimo ou zerado
             if estoque_disponivel == 0:
                 # CRÍTICO - zerado!
+                
+                # 🔥 DISPARAR EVENTO! (Observer Pattern - NOVO Aula 12!)
+                evento = EstoqueBaixoEvent(
+                    medicamento_id=medicamento.id,
+                    nome_medicamento=medicamento.nome,
+                    estoque_atual=estoque_disponivel,
+                    estoque_minimo=medicamento.estoque_minimo
+                )
+                event_dispatcher.notificar(evento)
+                
                 alertas.append({
                     "medicamento_id": medicamento.id,
                     "nome": medicamento.nome,
@@ -81,8 +98,19 @@ class VerificarEstoqueBaixoUseCase:
                     "status": "CRITICO",
                     "prioridade": 1  # Máxima prioridade
                 })
+                
             elif estoque_disponivel < medicamento.estoque_minimo:
                 # ATENÇÃO - abaixo do mínimo
+                
+                # 🔥 DISPARAR EVENTO! (Observer Pattern - NOVO Aula 12!)
+                evento = EstoqueBaixoEvent(
+                    medicamento_id=medicamento.id,
+                    nome_medicamento=medicamento.nome,
+                    estoque_atual=estoque_disponivel,
+                    estoque_minimo=medicamento.estoque_minimo
+                )
+                event_dispatcher.notificar(evento)
+                
                 alertas.append({
                     "medicamento_id": medicamento.id,
                     "nome": medicamento.nome,

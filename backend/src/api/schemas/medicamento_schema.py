@@ -5,6 +5,8 @@ Define estrutura de dados da API
 
 from typing import Optional
 from decimal import Decimal, InvalidOperation
+from datetime import date 
+from typing import Dict, Any  
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -120,3 +122,49 @@ class MedicamentoUpdate(BaseModel):
             except (InvalidOperation, ValueError):
                 raise ValueError(f"Preço inválido: '{v}'. Use formato numérico (ex: 10.50)")
         return v
+    
+class CadastrarMedicamentoComLoteRequest(BaseModel):
+    """Schema para cadastrar medicamento com lote inicial"""
+    # Dados do medicamento
+    nome: str = Field(..., min_length=3, max_length=200)
+    principio_ativo: str = Field(..., min_length=3, max_length=200)
+    preco: str = Field(..., pattern=r'^\d+(\.\d{2})?$', description="Preço no formato decimal (ex: 10.50)")
+    requer_receita: bool = False  # Compatível com Aula 10!
+    estoque_minimo: Optional[int] = Field(None, gt=0, description="Estoque mínimo (padrão: 50)")
+    
+    # Dados do lote inicial
+    numero_lote: str = Field(..., min_length=3, max_length=100)
+    quantidade_inicial: int = Field(..., gt=0, description="Quantidade inicial do lote")
+    data_fabricacao: date
+    data_validade: date
+    fornecedor: str = Field(..., min_length=3, max_length=200)
+    
+    @validator("data_validade")
+    def validar_validade_posterior(cls, v, values):
+        """Valida que data de validade é posterior à fabricação"""
+        if 'data_fabricacao' in values and v <= values['data_fabricacao']:
+            raise ValueError("Data de validade deve ser posterior à data de fabricação")
+        return v
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "nome": "Dipirona 500mg",
+                "principio_ativo": "Dipirona Sódica",
+                "preco": "8.50",
+                "requer_receita": False,
+                "estoque_minimo": 100,
+                "numero_lote": "LOTE-2026-001",
+                "quantidade_inicial": 500,
+                "data_fabricacao": "2026-01-15",
+                "data_validade": "2028-01-15",
+                "fornecedor": "Farmacêutica ABC"
+            }
+        }
+
+
+class CadastrarMedicamentoComLoteResponse(BaseModel):
+    """Schema de resposta do cadastro com lote"""
+    medicamento: Dict[str, Any]
+    lote: Dict[str, Any]
+    mensagem: str

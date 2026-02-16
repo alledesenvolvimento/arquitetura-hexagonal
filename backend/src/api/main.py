@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .controllers import medicamento_controller, lote_controller, receita_controller
 from src.api.controllers.relatorio_controller import router as relatorio_router
+from src.infrastructure.config import configurar_observers  # NOVO - Aula 12!
 
 
 # Criar aplicação FastAPI
@@ -28,6 +29,10 @@ app.add_middleware(
     allow_methods=["*"],  # GET, POST, PUT, DELETE...
     allow_headers=["*"],
 )
+
+
+# NOVO - Aula 12! Configurar observers na inicialização
+configurar_observers()
 
 
 # Registrar routers (controllers)

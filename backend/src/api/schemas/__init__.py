@@ -6,7 +6,9 @@ Definições de estrutura de dados da API
 from .medicamento_schema import (
     MedicamentoCreate,
     MedicamentoResponse,
-    MedicamentoUpdate
+    MedicamentoUpdate,
+    CadastrarMedicamentoComLoteRequest,  
+    CadastrarMedicamentoComLoteResponse, 
 )
 from .lote_schema import (
     LoteCreate,
@@ -34,6 +36,8 @@ __all__ = [
     "MedicamentoCreate",
     "MedicamentoResponse",
     "MedicamentoUpdate",
+    "CadastrarMedicamentoComLoteRequest",  
+    "CadastrarMedicamentoComLoteResponse", 
     "LoteCreate",
     "LoteResponse",
     "LoteUpdate",

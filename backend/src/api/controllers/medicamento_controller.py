@@ -13,6 +13,12 @@ from ..schemas.medicamento_schema import (
     MedicamentoResponse,
     MedicamentoUpdate
 )
+
+from ..schemas import ( 
+    CadastrarMedicamentoComLoteRequest,
+    CadastrarMedicamentoComLoteResponse,
+)
+
 from ..schemas.estoque_schema import (
     AdicionarEstoqueRequest,
     RemoverEstoqueRequest,
@@ -31,6 +37,7 @@ from ...adapters.repositories import (
     LoteRepositoryPostgres
 )
 from ...infrastructure.database import get_session
+from ...domain.exceptions import ValidationError
 
 
 # Criar router do FastAPI
@@ -387,4 +394,81 @@ def listar_estoque_baixo(session: Session = Depends(get_session)):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao verificar estoque baixo: {str(e)}"
+        )
+    
+@router.post(
+    "/com-lote",
+    response_model=CadastrarMedicamentoComLoteResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Cadastrar medicamento com lote inicial",
+    description="Cria um novo medicamento JÁ COM lote inicial (Factory Pattern)"
+)
+def cadastrar_medicamento_com_lote(
+    request: CadastrarMedicamentoComLoteRequest,
+    session: Session = Depends(get_session)
+):
+    """
+    Cadastra medicamento JÁ COM lote inicial
+    
+    Útil quando está recebendo produto novo!
+    Usa Factory Pattern internamente! 🏭
+    
+    Parâmetros do Medicamento:
+    - **nome**: Nome do medicamento (min 3 caracteres)
+    - **principio_ativo**: Princípio ativo do medicamento
+    - **preco**: Preço no formato decimal (ex: "10.50")
+    - **requer_receita**: Se é medicamento controlado (padrão: False)
+    - **estoque_minimo**: Estoque mínimo (opcional, padrão: 50)
+    
+    Parâmetros do Lote:
+    - **numero_lote**: Número do lote (min 3 caracteres)
+    - **quantidade_inicial**: Quantidade inicial do lote (> 0)
+    - **data_fabricacao**: Data de fabricação (YYYY-MM-DD)
+    - **data_validade**: Data de validade (YYYY-MM-DD)
+    - **fornecedor**: Nome do fornecedor (min 3 caracteres)
+    
+    Retorna:
+    - Dados do medicamento criado
+    - Dados do lote criado
+    - Mensagem de sucesso
+    """
+    try:
+        # 1. Criar dependências
+        medicamento_repo = MedicamentoRepositoryPostgres(session)
+        lote_repo = LoteRepositoryPostgres(session)
+        
+        # 2. Executar use case
+        use_case = CadastrarMedicamentoUseCase(
+            repository=medicamento_repo,
+            lote_repository=lote_repo
+        )
+        
+        resultado = use_case.execute_com_lote_inicial(
+            # Dados do medicamento
+            nome=request.nome,
+            principio_ativo=request.principio_ativo,
+            preco=float(request.preco),  # Converte string para float
+            requer_receita=request.requer_receita,
+            estoque_minimo=request.estoque_minimo,
+            # Dados do lote
+            numero_lote=request.numero_lote,
+            quantidade_inicial=request.quantidade_inicial,
+            data_fabricacao=request.data_fabricacao.isoformat(),
+            data_validade=request.data_validade.isoformat(),
+            fornecedor=request.fornecedor
+        )
+        
+        return resultado
+        
+    except ValueError as e:
+        # Erro de validação (ValueError é usado no projeto!)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        # Erro inesperado
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao cadastrar medicamento com lote: {str(e)}"
         )

@@ -1,11 +1,15 @@
 """
 Use Case: Cadastrar Medicamento
 Coordena o processo de cadastrar um novo medicamento no sistema
+Agora com Factory Pattern! 🏭
 """
 
 from decimal import Decimal
-from src.domain.entities import Medicamento
-from src.domain.ports import MedicamentoRepositoryPort
+from typing import Dict, Any, Optional
+
+from src.domain.entities import Medicamento, Lote
+from src.domain.ports import MedicamentoRepositoryPort, LoteRepositoryPort
+from src.domain.factories import MedicamentoFactory
 
 
 class CadastrarMedicamentoUseCase:
@@ -14,19 +18,25 @@ class CadastrarMedicamentoUseCase:
     
     Responsabilidades:
     - Receber dados do medicamento
-    - Criar entidade Medicamento (validações ocorrem aqui!)
+    - Criar entidade Medicamento usando Factory! 🏭
     - Salvar usando o repositório (port)
     - Retornar medicamento salvo
     """
     
-    def __init__(self, repository: MedicamentoRepositoryPort):
+    def __init__(
+        self, 
+        repository: MedicamentoRepositoryPort,
+        lote_repository: Optional[LoteRepositoryPort] = None
+    ):
         """
         Inicializa o Use Case com suas dependências
         
         Args:
             repository: Port do repositório de medicamentos
+            lote_repository: Port do repositório de lotes (opcional)
         """
         self.repository = repository
+        self.lote_repository = lote_repository
     
     def execute(self, dados: dict) -> Medicamento:
         """
@@ -46,24 +56,92 @@ class CadastrarMedicamentoUseCase:
         Raises:
             ValueError: Se dados inválidos (regras do domínio)
         """
-        # PASSO 1: Criar entidade do domínio
-        # (Todas as validações acontecem automaticamente aqui!)
-        
-        # Converter preço para Decimal se necessário
+        # Converter preço para float (Factory espera float)
         preco = dados['preco']
-        if not isinstance(preco, Decimal):
-            preco = Decimal(str(preco))
+        if isinstance(preco, Decimal):
+            preco = float(preco)
+        elif isinstance(preco, str):
+            preco = float(preco)
         
-        medicamento = Medicamento(
+        # USAR FACTORY para criar medicamento! 🏭
+        medicamento = MedicamentoFactory.criar(
             nome=dados['nome'],
             principio_ativo=dados['principio_ativo'],
             preco=preco,
-            estoque_minimo=dados['estoque_minimo'],
-            requer_receita=dados.get('requer_receita', False)  # ← NOVO! (Aula 10)
+            estoque_minimo=dados.get('estoque_minimo'),  # Usa padrão da Factory se None
+            controlado=dados.get('requer_receita', False)  # Compatível com campo atual
         )
         
-        # PASSO 2: Salvar usando o port
+        # Salvar usando o port
         medicamento_salvo = self.repository.salvar(medicamento)
         
-        # PASSO 3: Retornar resultado
+        # Retornar resultado
         return medicamento_salvo
+    
+    def execute_com_lote_inicial(
+        self,
+        # Dados do medicamento
+        nome: str,
+        principio_ativo: str,
+        preco: float,
+        requer_receita: bool,
+        estoque_minimo: Optional[int],
+        # Dados do lote
+        numero_lote: str,
+        quantidade_inicial: int,
+        data_fabricacao: str,
+        data_validade: str,
+        fornecedor: str
+    ) -> Dict[str, Any]:
+        """
+        Cadastra medicamento JÁ COM lote inicial
+        
+        Usa Factory.criar_com_lote_inicial()! 🏭
+        
+        Novo método adicionado na Aula 12!
+        """
+        if not self.lote_repository:
+            raise ValueError("Repositório de lotes não configurado")
+        
+        # Criar medicamento + lote usando Factory! 🏭
+        medicamento, lote = MedicamentoFactory.criar_com_lote_inicial(
+            nome=nome,
+            principio_ativo=principio_ativo,
+            preco=preco,
+            numero_lote=numero_lote,
+            quantidade_inicial=quantidade_inicial,
+            data_fabricacao=data_fabricacao,
+            data_validade=data_validade,
+            fornecedor=fornecedor,
+            estoque_minimo=estoque_minimo,
+            controlado=requer_receita  # Converte aqui para o padrão da Factory
+        )
+        
+        # Salvar medicamento
+        medicamento_salvo = self.repository.salvar(medicamento)
+        
+        # Atualizar ID do medicamento no lote
+        lote.medicamento_id = medicamento_salvo.id
+        
+        # Salvar lote
+        lote_salvo = self.lote_repository.salvar(lote)
+        
+        # Retornar dados completos
+        return {
+            "medicamento": {
+                "id": medicamento_salvo.id,
+                "nome": medicamento_salvo.nome,
+                "principio_ativo": medicamento_salvo.principio_ativo,
+                "preco": float(medicamento_salvo.preco),
+                "requer_receita": medicamento_salvo.requer_receita  # ← Campo correto!
+            },
+            "lote": {
+                "id": lote_salvo.id,
+                "numero_lote": lote_salvo.numero_lote,
+                "quantidade": lote_salvo.quantidade,
+                "data_fabricacao": lote_salvo.data_fabricacao.isoformat(),
+                "data_validade": lote_salvo.data_validade.isoformat(),
+                "fornecedor": lote_salvo.fornecedor
+            },
+            "mensagem": "Medicamento e lote inicial cadastrados com sucesso!"
+        }
