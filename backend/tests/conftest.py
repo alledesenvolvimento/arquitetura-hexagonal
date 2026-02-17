@@ -16,6 +16,14 @@ from src.adapters.repositories import (
     LoteRepositoryMemory
 )
 
+from unittest.mock import MagicMock
+from src.application.use_cases import (
+    CadastrarMedicamentoUseCase,
+    ListarMedicamentosUseCase,
+    AdicionarEstoqueUseCase,
+    VerificarEstoqueBaixoUseCase,
+)
+
 
 # ==========================================
 # FIXTURES DE MEDICAMENTOS
@@ -175,4 +183,134 @@ def repositorios_populados(repositorio_medicamentos, repositorio_lotes):
         "med1": med1,
         "med2": med2,
         "med3": med3,
+    }
+
+"""
+# ==========================================
+# COLE ESSE BLOCO NO FINAL DO SEU conftest.py
+# (depois do fixture repositorios_populados)
+# ==========================================
+"""
+
+# Adicione esses imports no TOPO do conftest.py (junto com os já existentes):
+# from unittest.mock import MagicMock
+# from src.application.use_cases import (
+#     CadastrarMedicamentoUseCase,
+#     ListarMedicamentosUseCase,
+#     AdicionarEstoqueUseCase,
+#     VerificarEstoqueBaixoUseCase,
+# )
+
+# ==========================================
+# FIXTURES AVANÇADAS — NOVIDADE DA AULA 15!
+# ==========================================
+
+
+# 🌊 Fixtures com yield (setup + teardown)
+
+@pytest.fixture
+def repositorio_com_log():
+    """
+    Fixture com setup E teardown usando yield.
+
+    Antes do yield: preparação (setup)
+    Depois do yield: limpeza (teardown)
+    """
+    print("\n🔧 [SETUP] Criando repositório em memória...")
+    repo = MedicamentoRepositoryMemory()
+
+    yield repo  # ← o teste roda aqui, usando 'repo'
+
+    # Teardown: roda DEPOIS do teste, mesmo se falhar!
+    print("\n🧹 [TEARDOWN] Repositório liberado!")
+
+
+# 🎯 Fixtures de composição (fixture que usa outra fixture)
+
+@pytest.fixture
+def use_case_cadastrar(repositorio_medicamentos):
+    """
+    Fixture de composição: use case já configurado com repositório.
+
+    Uso: def test_algo(use_case_cadastrar):
+    """
+    return CadastrarMedicamentoUseCase(repositorio_medicamentos)
+
+
+@pytest.fixture
+def use_case_listar(repositorio_medicamentos):
+    """Fixture de composição: use case de listagem configurado."""
+    return ListarMedicamentosUseCase(repositorio_medicamentos)
+
+
+@pytest.fixture
+def use_cases_estoque(repositorio_medicamentos, repositorio_lotes):
+    """
+    Fixture de composição: use cases de estoque configurados.
+
+    Retorna dicionário com DOIS use cases prontos para uso.
+    """
+    return {
+        "adicionar": AdicionarEstoqueUseCase(repositorio_medicamentos, repositorio_lotes),
+        "verificar": VerificarEstoqueBaixoUseCase(repositorio_medicamentos, repositorio_lotes),
+    }
+
+
+# 🤖 Fixtures de Mock reutilizáveis
+
+@pytest.fixture
+def repo_medicamentos_mock():
+    """
+    Fixture: MagicMock de repositório de medicamentos.
+
+    Exemplo de uso:
+        def test_algo(repo_medicamentos_mock):
+            repo_medicamentos_mock.listar_todos.return_value = []
+    """
+    return MagicMock()
+
+
+@pytest.fixture
+def repo_lotes_mock():
+    """Fixture: MagicMock de repositório de lotes."""
+    return MagicMock()
+
+
+@pytest.fixture
+def mocks_prontos():
+    """
+    Fixture: conjunto de mocks já configurados com dados padrão.
+    """
+    repo_med = MagicMock()
+    repo_lotes = MagicMock()
+
+    medicamento_padrao = Medicamento(
+        nome="Dipirona 500mg",
+        principio_ativo="Dipirona Sódica",
+        preco=Decimal("8.50"),
+        estoque_atual=100,
+        estoque_minimo=20,
+        requer_receita=False,
+    )
+
+    lote_padrao = Lote(
+        numero_lote="LOTE-PADRAO-001",
+        medicamento_id=1,
+        quantidade=100,
+        data_fabricacao=date.today() - timedelta(days=30),
+        data_validade=date.today() + timedelta(days=365),
+        fornecedor="Farmacêutica Padrão Ltda",
+    )
+
+    # Configurar comportamentos padrão
+    repo_med.listar_todos.return_value = [medicamento_padrao]
+    repo_med.buscar_por_id.return_value = medicamento_padrao
+    repo_med.salvar.return_value = medicamento_padrao
+    repo_lotes.salvar.return_value = lote_padrao
+
+    return {
+        "repo_med": repo_med,
+        "repo_lotes": repo_lotes,
+        "medicamento": medicamento_padrao,
+        "lote": lote_padrao,
     }
