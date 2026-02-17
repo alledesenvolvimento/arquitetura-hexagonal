@@ -1,29 +1,50 @@
 """
-Base do SQLAlchemy
-Configuração central do ORM
+Configuração do Banco de Dados
+Usa variáveis de ambiente do arquivo .env
 """
 
+import os
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
+from dotenv import load_dotenv
 
-# Base para os modelos
+# Carregar variáveis do arquivo .env
+load_dotenv()
+
+# ======================================================
+# URL DO BANCO — vem do .env, nunca hardcoded no código!
+# ======================================================
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    # Valor padrão caso .env não exista (evita crashes)
+    "postgresql://postgres:postgres@localhost:5432/allefarma"
+)
+
+# Criar engine do SQLAlchemy
+engine = create_engine(
+    DATABASE_URL,
+    echo=False  # True para ver SQL no terminal (útil pra debug)
+)
+
+# Criar fábrica de sessões
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
+
+# Base para os modelos ORM
 Base = declarative_base()
-
-# Configuração do banco
-DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/allefarma"
-
-# Engine (motor de conexão)
-engine = create_engine(DATABASE_URL, echo=True)
-
-# Session (sessão pra interagir com o banco)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def get_session():
-    """Retorna uma sessão do banco"""
-    session = SessionLocal()
+    """
+    Dependency Injection do FastAPI
+
+    Cria uma sessão, passa pro endpoint, fecha no final.
+    """
+    db = SessionLocal()
     try:
-        yield session
+        yield db
     finally:
-        session.close()
+        db.close()
